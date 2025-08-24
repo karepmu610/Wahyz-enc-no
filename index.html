@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Encrypt Cina Arab Jawa</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Share Tech Mono', monospace;
+      background-color: #000;
+      color: #0ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: #001f2f;
+      border: 3px solid #00f0ff;
+      box-shadow: 0 0 25px #00f0ff;
+      padding: 15px;
+      border-radius: 15px;
+      max-width: 90vw;
+      width: 100%;
+    }
+
+    h1 {
+      text-align: center;
+      color: #0ff;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100px;
+      background: #000;
+      color: #0ff;
+      border: 1px solid #0ff;
+      padding: 8px;
+      border-radius: 5px;
+      resize: vertical;
+      font-size: 12px;
+    }
+
+    button, select, input[type="file"] {
+      background: #0ff;
+      color: #000;
+      border: none;
+      padding: 8px 14px;
+      margin: 10px 5px 0 0;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 12px;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #00c0c0;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    select {
+      background-color: #000;
+      border: 1px solid #0ff;
+      color: #0ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Encrypt Script - Cina, Arab, Jawa</h1>
+
+    <label for="style">Pilih Karakter Encrypt:</label>
+    <select id="style">
+      <option value="cina">Cina</option>
+      <option value="arab">Arab</option>
+      <option value="jawa">Jawa</option>
+      <option value="campur">Campur</option>
+    </select>
+
+    <label for="fileInput">Upload File (.txt / .js):</label>
+    <input type="file" id="fileInput" accept=".txt,.js" />
+
+    <label for="input">Script Input:</label>
+    <textarea id="input" placeholder="Masukkan script bot di sini..."></textarea>
+
+    <div>
+      <button onclick="encrypt()">Encrypt</button>
+      <button onclick="decrypt()">Decrypt</button>
+      <button onclick="copyOutput()">Copy</button>
+      <button onclick="clearAll()">Clear All</button>
+    </div>
+
+    <label for="output">Output:</label>
+    <textarea id="output" placeholder="Hasil akan muncul di sini..." readonly></textarea>
+  </div>
+
+  <script>
+    const charSets = {
+      cina: [],
+      arab: [],
+      jawa: []
+    };
+
+    for (let i = 0x4e00; i < 0x4e00 + 1000; i++) charSets.cina.push(String.fromCharCode(i));
+    for (let i = 0x0600; i < 0x0600 + 200; i++) charSets.arab.push(String.fromCharCode(i));
+    for (let i = 0xA980; i < 0xA980 + 80; i++) charSets.jawa.push(String.fromCharCode(i));
+
+    function getCharSet(style) {
+      if (style === 'campur') {
+        return [...charSets.cina, ...charSets.arab, ...charSets.jawa];
+      } else {
+        return charSets[style] || charSets.cina;
+      }
+    }
+
+    function encodeToCustom(text, style) {
+      const base64 = btoa(unescape(encodeURIComponent(text)));
+      const map = getCharSet(style);
+      return base64.split('').map(char => {
+        const code = char.charCodeAt(0);
+        return map[code % map.length];
+      }).join('');
+    }
+
+    function decodeFromCustom(text, style) {
+      const map = getCharSet(style);
+      const reversed = text.split('').map(char => {
+        const index = map.indexOf(char);
+        if (index === -1) return '';
+        return String.fromCharCode(index % 128);
+      }).join('');
+
+      try {
+        const decoded = decodeURIComponent(escape(atob(reversed)));
+        return decoded;
+      } catch (e) {
+        return '[❌ Gagal decrypt. Data rusak atau salah pilihan karakter.]';
+      }
+    }
+
+    function encrypt() {
+      const input = document.getElementById("input").value.trim();
+      const style = document.getElementById("style").value;
+      const outputBox = document.getElementById("output");
+
+      if (!input) {
+        alert("⚠️ Input kosong. Masukkan atau upload script terlebih dahulu.");
+        outputBox.value = '';
+        return;
+      }
+
+      const result = encodeToCustom(input, style);
+      outputBox.value = result;
+
+      // Auto download hasil encrypt
+      const blob = new Blob([result], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "encrypted.txt";
+      a.click();
+    }
+
+    function decrypt() {
+      const input = document.getElementById("input").value.trim();
+      const style = document.getElementById("style").value;
+      const outputBox = document.getElementById("output");
+
+      if (!input) {
+        alert("⚠️ Input kosong. Masukkan data encrypt terlebih dahulu.");
+        outputBox.value = '';
+        return;
+      }
+
+      const result = decodeFromCustom(input, style);
+      outputBox.value = result;
+    }
+
+    function copyOutput() {
+      const output = document.getElementById("output");
+      output.select();
+      document.execCommand("copy");
+      alert("✅ Output disalin!");
+    }
+
+    function clearAll() {
+      document.getElementById("input").value = '';
+      document.getElementById("output").value = '';
+      document.getElementById("style").value = 'cina';
+      document.getElementById("fileInput").value = '';
+    }
+
+    // Handle upload file
+    document.getElementById('fileInput').addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById("input").value = e.target.result;
+        document.getElementById("output").value = '';
+      };
+      reader.readAsText(file);
+    });
+
+    // Auto clear output jika input kosong
+    document.getElementById("input").addEventListener('input', function () {
+      if (this.value.trim() === "") {
+        document.getElementById("output").value = "";
+      }
+    });
+  </script>
+</body>
+</html>
