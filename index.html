@@ -6,19 +6,18 @@
   <title>Encrypt Cina Arab Jawa Custom</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-
     body {
       margin: 0;
       padding: 0;
-      font-family: 'Share Tech Mono', monospace;
-      background-color: #000;
+      font-family: 'Share+Tech+Mono', monospace;
+      background: #000;
       color: #0ff;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
+      overflow: hidden;
     }
-
     .container {
       background: #001f2f;
       border: 3px solid #00f0ff;
@@ -27,15 +26,10 @@
       border-radius: 15px;
       max-width: 90vw;
       width: 100%;
+      z-index: 2;
+      position: relative;
     }
-
-    h1 {
-      text-align: center;
-      color: #0ff;
-      margin-bottom: 15px;
-      font-size: 18px;
-    }
-
+    h1 { text-align: center; color: #0ff; margin-bottom: 15px; font-size: 18px; }
     textarea {
       width: 100%;
       height: 100px;
@@ -47,46 +41,30 @@
       resize: vertical;
       font-size: 12px;
     }
-
     button, select, input[type="file"], input[type="text"] {
-      background: #0ff;
-      color: #000;
-      border: none;
-      padding: 8px 14px;
-      margin: 10px 5px 0 0;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 12px;
-      transition: background 0.3s ease;
+      background: #0ff; color: #000; border: none; padding: 8px 14px;
+      margin: 10px 5px 0 0; border-radius: 5px; cursor: pointer;
+      font-weight: bold; font-size: 12px; transition: background 0.3s ease;
     }
-
-    button:hover {
-      background: #00c0c0;
-    }
-
-    label {
-      display: block;
-      margin-top: 10px;
-      margin-bottom: 5px;
-      font-size: 13px;
-    }
-
-    select {
-      background-color: #000;
-      border: 1px solid #0ff;
-      color: #0ff;
-    }
-
-    #customWordBox {
-      display: none; /* default disembunyikan */
+    button:hover { background: #00c0c0; }
+    label { display: block; margin-top: 10px; margin-bottom: 5px; font-size: 13px; }
+    select { background: #000; border: 1px solid #0ff; color: #0ff; }
+    #customWordBox { display: none; }
+    /* matrix canvas */
+    #matrix {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: none;
+      background: rgba(0,0,0,0.95);
+      z-index: 10;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🔐 Encrypt Script - Cina, Arab, Jawa, Custom</h1>
+  <canvas id="matrix"></canvas>
 
+  <div class="container" id="mainBox">
+    <h1>🔐 Encrypt Script - Cina, Arab, Jawa, Custom</h1>
     <label for="style">Pilih Karakter Encrypt:</label>
     <select id="style">
       <option value="cina">Cina</option>
@@ -96,7 +74,6 @@
       <option value="custom">Custom</option>
     </select>
 
-    <!-- kolom custom -->
     <div id="customWordBox">
       <label for="customWord">Masukkan Kata Custom:</label>
       <input type="text" id="customWord" placeholder="contoh: ngapain bg">
@@ -109,10 +86,10 @@
     <textarea id="input" placeholder="Masukkan script bot di sini..."></textarea>
 
     <div>
-      <button onclick="encrypt()">Encrypt</button>
-      <button onclick="decrypt()">Decrypt</button>
+      <button onclick="startProcess('encrypt')">Encrypt</button>
+      <button onclick="startProcess('decrypt')">Decrypt</button>
       <button onclick="copyOutput()">Copy</button>
-      <button onclick="clearAll()">Clear All</button>
+      <button onclick="startProcess('clear')">Clear All</button>
     </div>
 
     <label for="output">Output:</label>
@@ -120,103 +97,118 @@
   </div>
 
   <script>
-    const charSets = { cina: [], arab: [], jawa: [] };
+    // --- Charset
+    const charSets = {cina:[], arab:[], jawa:[]};
+    for(let i=0x4e00;i<0x4e00+1000;i++) charSets.cina.push(String.fromCharCode(i));
+    for(let i=0x0600;i<0x0600+200;i++) charSets.arab.push(String.fromCharCode(i));
+    for(let i=0xA980;i<0xA980+80;i++) charSets.jawa.push(String.fromCharCode(i));
 
-    for (let i = 0x4e00; i < 0x4e00 + 1000; i++) charSets.cina.push(String.fromCharCode(i));
-    for (let i = 0x0600; i < 0x0600 + 200; i++) charSets.arab.push(String.fromCharCode(i));
-    for (let i = 0xA980; i < 0xA980 + 80; i++) charSets.jawa.push(String.fromCharCode(i));
+    function getCharSet(style){return style==='campur'?[...charSets.cina,...charSets.arab,...charSets.jawa]:charSets[style]||charSets.cina;}
+    function textToBinary(t){return t.split('').map(ch=>ch.charCodeAt(0).toString(2).padStart(8,'0')).join('');}
+    function binaryToText(b){return b.match(/.{1,8}/g).map(x=>String.fromCharCode(parseInt(x,2))).join('');}
 
-    function getCharSet(style) {
-      if (style === 'campur') return [...charSets.cina, ...charSets.arab, ...charSets.jawa];
-      return charSets[style] || charSets.cina;
-    }
-
-    function textToBinary(text) {
-      return text.split('').map(ch => ch.charCodeAt(0).toString(2).padStart(8,'0')).join('');
-    }
-
-    function binaryToText(bin) {
-      return bin.match(/.{1,8}/g).map(b => String.fromCharCode(parseInt(b,2))).join('');
-    }
-
-    function encodeToCustom(text, style) {
-      if (style === "custom") {
-        const word0 = document.getElementById("customWord").value.trim() || "X0";
-        const word1 = word0 + "_1";
-        const bin = textToBinary(text);
-        return bin.split('').map(bit => bit === "0" ? word0 : word1).join(" ");
+    function encodeToCustom(text, style){
+      if(style==="custom"){
+        const w0=document.getElementById("customWord").value.trim()||"X0";
+        const w1=w0+"_1";
+        return textToBinary(text).split('').map(b=>b==="0"?w0:w1).join(" ");
       } else {
-        const base64 = btoa(unescape(encodeURIComponent(text)));
-        const map = getCharSet(style);
-        return base64.split('').map(char => {
-          const code = char.charCodeAt(0);
-          return map[code % map.length];
-        }).join('');
+        const base64=btoa(unescape(encodeURIComponent(text)));
+        const map=getCharSet(style);
+        return base64.split('').map(ch=>map[ch.charCodeAt(0)%map.length]).join('');
       }
     }
 
-    function decodeFromCustom(text, style) {
-      if (style === "custom") {
-        const word0 = document.getElementById("customWord").value.trim() || "X0";
-        const word1 = word0 + "_1";
-        const parts = text.trim().split(/\s+/);
-        const bin = parts.map(w => w === word1 ? "1" : "0").join("");
-        return binaryToText(bin);
+    function decodeFromCustom(text, style){
+      if(style==="custom"){
+        const w0=document.getElementById("customWord").value.trim()||"X0";
+        const w1=w0+"_1";
+        const parts=text.trim().split(/\s+/);
+        return binaryToText(parts.map(w=>w===w1?"1":"0").join(""));
       } else {
-        const map = getCharSet(style);
-        const reversed = text.split('').map(char => {
-          const index = map.indexOf(char);
-          if (index === -1) return '';
-          return String.fromCharCode(index % 128);
+        const map=getCharSet(style);
+        const reversed=text.split('').map(ch=>{
+          const idx=map.indexOf(ch);
+          return idx===-1?'':String.fromCharCode(idx%128);
         }).join('');
-        try {
-          return decodeURIComponent(escape(atob(reversed)));
-        } catch {
-          return '[❌ Gagal decrypt. Data rusak atau salah pilihan karakter.]';
-        }
+        try{return decodeURIComponent(escape(atob(reversed)));}catch{return '[❌ Gagal decrypt]';}
       }
     }
 
-    function encrypt() {
-      const input = document.getElementById("input").value.trim();
-      const style = document.getElementById("style").value;
-      if (!input) return alert("⚠️ Input kosong!");
-      document.getElementById("output").value = encodeToCustom(input, style);
+    function encryptNow(){
+      const input=document.getElementById("input").value.trim();
+      const style=document.getElementById("style").value;
+      if(!input){alert("⚠️ Input kosong!");return "";}
+      return encodeToCustom(input, style);
+    }
+    function decryptNow(){
+      const encrypted=document.getElementById("input").value.trim();
+      const style=document.getElementById("style").value;
+      if(!encrypted){alert("⚠️ Input kosong!");return "";}
+      return decodeFromCustom(encrypted, style);
+    }
+    function clearNow(){
+      document.getElementById("input").value="";
+      document.getElementById("output").value="";
+      document.getElementById("style").value="cina";
+      document.getElementById("customWordBox").style.display="none";
+      document.getElementById("customWord").value="";
+      document.getElementById("fileInput").value="";
+      return "CLEARED";
     }
 
-    function decrypt() {
-      const encrypted = document.getElementById("output").value.trim(); // 🔑 ambil dari output
-      const style = document.getElementById("style").value;
-      if (!encrypted) return alert("⚠️ Output kosong!");
-      document.getElementById("input").value = decodeFromCustom(encrypted, style);
-    }
-
-    function copyOutput() {
-      const output = document.getElementById("output");
-      output.select();
-      document.execCommand("copy");
+    function copyOutput(){
+      const o=document.getElementById("output");
+      o.select();document.execCommand("copy");
       alert("✅ Output disalin!");
     }
 
-    function clearAll() {
-      document.getElementById("input").value = '';
-      document.getElementById("output").value = '';
-      document.getElementById("style").value = 'cina';
-      document.getElementById("customWordBox").style.display = "none";
-      document.getElementById("customWord").value = '';
-      document.getElementById("fileInput").value = '';
+    // --- Matrix animation
+    const canvas=document.getElementById("matrix"),ctx=canvas.getContext("2d");
+    let w,h,cols,ypos;
+    function resize(){w=canvas.width=window.innerWidth;h=canvas.height=window.innerHeight;cols=Math.floor(w/20)+1;ypos=Array(cols).fill(0);}
+    resize();window.addEventListener("resize",resize);
+    function matrixRain(){
+      ctx.fillStyle="rgba(0,0,0,0.1)";ctx.fillRect(0,0,w,h);
+      ctx.fillStyle="#0f0";ctx.font="15pt monospace";
+      ypos.forEach((y,ind)=>{
+        const text=String.fromCharCode(Math.random()*128);
+        const x=ind*20;
+        ctx.fillText(text,x,y);
+        if(y>100+Math.random()*10000) ypos[ind]=0; else ypos[ind]=y+20;
+      });
+    }
+    let intervalId=null;
+    function startMatrix(){canvas.style.display="block";intervalId=setInterval(matrixRain,50);}
+    function stopMatrix(){canvas.style.display="none";clearInterval(intervalId);}
+
+    // --- Start process wrapper
+    function startProcess(mode){
+      // hide main box
+      document.getElementById("mainBox").style.display="none";
+      startMatrix();
+      setTimeout(()=>{
+        let result="";
+        if(mode==="encrypt") result=encryptNow();
+        else if(mode==="decrypt") result=decryptNow();
+        else if(mode==="clear") result=clearNow();
+        stopMatrix();
+        document.getElementById("mainBox").style.display="block";
+        if(mode==="encrypt"||mode==="decrypt") document.getElementById("output").value=result;
+      },2000); // 2 detik animasi
     }
 
-    document.getElementById('fileInput').addEventListener('change', function () {
-      const file = this.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = e => document.getElementById("input").value = e.target.result;
-      reader.readAsText(file);
+    // Toggle custom word input
+    document.getElementById("style").addEventListener("change",function(){
+      document.getElementById("customWordBox").style.display=this.value==="custom"?"block":"none";
     });
 
-    document.getElementById("style").addEventListener("change", function () {
-      document.getElementById("customWordBox").style.display = this.value === "custom" ? "block" : "none";
+    // File input
+    document.getElementById("fileInput").addEventListener("change",function(){
+      const f=this.files[0];if(!f)return;
+      const r=new FileReader();
+      r.onload=e=>document.getElementById("input").value=e.target.result;
+      r.readAsText(f);
     });
   </script>
 </body>
